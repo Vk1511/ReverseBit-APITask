@@ -1,0 +1,6 @@
+fastapi
+pydantic
+SQLAlchemy
+requests
+alembic
+hypercorn

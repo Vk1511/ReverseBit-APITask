@@ -1,0 +1,14 @@
+version: '3.8'
+
+services:
+  reverse-bit-db:
+    image: postgres:14-alpine
+    container_name: reverse-bit-db
+    env_file:
+      - ./.env
+    volumes:
+      - ./volumes/reversebit-db/data:/var/lib/postgresql/data:rw
+    ports:
+      - "5445:5432"
+    stop_grace_period: 1m
+  
