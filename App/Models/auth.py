@@ -73,3 +73,13 @@ class User(Base):
         for k, v in kwargs.items():
             setattr(self, k, v)
         await self.save(db_session)
+
+    async def delete(self, db_session):
+        try:
+            await db_session.delete(self)
+            await db_session.commit()
+        except SQLAlchemyError as sql_error:
+            await db_session.rollback()
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=repr(sql_error)
+            ) from sql_error

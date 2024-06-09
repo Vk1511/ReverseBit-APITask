@@ -11,10 +11,10 @@ from app.services.jwt import (
     verify_password,
     create_access_refresh_token,
 )
-from .constant import REGISTER, LOGIN, UPDATE_USER
+from .constant import REGISTER, LOGIN, AUTH
 from app.exception import ReverseBitException
 
-router = APIRouter(prefix="/auth")
+router = APIRouter(prefix=f"/{AUTH}")
 
 
 @router.post(

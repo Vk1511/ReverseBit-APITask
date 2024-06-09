@@ -7,15 +7,12 @@ from app.schema.user import UserUpdate
 from app.config.database import AsyncReverseBitDBSessionFactory, get_reversebit_db
 from app.models.auth import User
 from app.services.jwt import (
-    get_password_hash,
-    verify_password,
-    create_access_refresh_token,
     get_current_user,
 )
-from .constant import REGISTER, LOGIN, UPDATE_USER
 from app.exception import ReverseBitException
+from .constant import UPDATE_USER
 
-router = APIRouter(prefix="/user")
+router = APIRouter(prefix=f"/{UPDATE_USER}")
 
 
 @router.put(
@@ -60,7 +57,7 @@ async def update_user(
         response = GenericDataResponseModel(
             status=True,
             data=body.dict(),
-            message=f"User logged-in successfully.",
+            message=f"User details updated successfully.",
             code=status.HTTP_201_CREATED,
             timestamp=str(datetime.now(pytz.utc)),
         )
@@ -124,7 +121,65 @@ async def partial_update_user(
         response = GenericDataResponseModel(
             status=True,
             data=values_need_be_update,
-            message=f"User logged-in successfully.",
+            message=f"User details updated successfully.",
+            code=status.HTTP_201_CREATED,
+            timestamp=str(datetime.now(pytz.utc)),
+        )
+    except ReverseBitException as e:
+        response.status_code = e.status_code
+        response = ErrorResponseModel(
+            status=False,
+            timestamp=str(datetime.now(pytz.utc)),
+            data={
+                "message": str(e.message),
+                "code": e.status_code,
+            },
+        )
+    except Exception as e:
+        response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
+        response = ErrorResponseModel(
+            status=False,
+            timestamp=str(datetime.now(pytz.utc)),
+            data={
+                "message": str(e),
+                "code": status.HTTP_500_INTERNAL_SERVER_ERROR,
+            },
+        )
+
+    return response
+
+
+@router.delete(
+    "/{user_id}",
+    response_model=Union[GenericDataResponseModel, ErrorResponseModel],
+)
+async def delete_user(
+    request: Request,
+    user_id: int,
+    response: Response,
+    user: str = Depends(get_current_user),
+    reverse_bit_db_session: AsyncReverseBitDBSessionFactory = Depends(
+        get_reversebit_db
+    ),
+):
+
+    try:
+        # check user already exists
+        user_details = await User.get_specific_user(
+            db_session=reverse_bit_db_session, user=user_id, is_email=False
+        )
+        if not user_details:
+            raise ReverseBitException(
+                message="For given user id, user doesn't exist. ",
+                status_code=status.HTTP_404_NOT_FOUND,
+            )
+        else:
+            _ = await user_details.delete(db_session=reverse_bit_db_session)
+
+        response = GenericDataResponseModel(
+            status=True,
+            data={},
+            message=f"User with {user_id} deleted successfully.",
             code=status.HTTP_201_CREATED,
             timestamp=str(datetime.now(pytz.utc)),
         )
