@@ -27,15 +27,21 @@ class User(Base):
 
     @classmethod
     async def get_specific_user(
-        cls, db_session: AsyncReverseBitDBSessionFactory, user_email: String
+        cls,
+        db_session: AsyncReverseBitDBSessionFactory,
+        user: String,
+        is_email: Boolean = True,
     ):
-        stmt = select(cls).where(cls.email == user_email)
+        if is_email:
+            stmt = select(cls).where(cls.email == user)
+        else:
+            stmt = select(cls).where(cls.id == user)
+
         result = await db_session.execute(stmt)
-        user = result.unique().scalars().all()
-        json_compatible_permission = jsonable_encoder(user)
-        return (
-            json_compatible_permission[0] if len(json_compatible_permission) else False
-        )
+        user = result.fetchone()
+        # user = result.unique().scalars().all()
+        # json_compatible_permission = jsonable_encoder(user)
+        return user[0] if len(user) else False
 
     async def save(self, db_session: AsyncReverseBitDBSessionFactory, flush=None):
         """

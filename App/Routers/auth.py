@@ -10,7 +10,6 @@ from app.services.jwt import (
     get_password_hash,
     verify_password,
     create_access_refresh_token,
-    get_current_user,
 )
 from .constant import REGISTER, LOGIN, UPDATE_USER
 from app.exception import ReverseBitException
@@ -35,7 +34,7 @@ async def create_user(
 
         # check user already exists
         is_user_exists = await User.get_specific_user(
-            db_session=reverse_bit_db_session, user_email=email
+            db_session=reverse_bit_db_session, user=email
         )
         if is_user_exists:
             raise ReverseBitException(
@@ -112,8 +111,9 @@ async def validate_user(
 
         # check user already exists
         user_details = await User.get_specific_user(
-            db_session=reverse_bit_db_session, user_email=email
+            db_session=reverse_bit_db_session, user=email
         )
+        print("user_details", user_details)
         if not user_details:
             raise ReverseBitException(
                 message="User doesn't exist. Please register the user.",
@@ -122,132 +122,7 @@ async def validate_user(
         else:
             _ = verify_password(
                 plain_password=password,
-                hashed_password=user_details["password"],
-            )
-            token = create_access_refresh_token(email=email)
-
-        response = GenericDataResponseModel(
-            status=True,
-            data=token,
-            message=f"User logged-in successfully.",
-            code=status.HTTP_201_CREATED,
-            timestamp=str(datetime.now(pytz.utc)),
-        )
-    except ReverseBitException as e:
-        response.status_code = e.status_code
-        response = ErrorResponseModel(
-            status=False,
-            timestamp=str(datetime.now(pytz.utc)),
-            data={
-                "message": str(e.message),
-                "code": e.status_code,
-            },
-        )
-    except Exception as e:
-        response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
-        response = ErrorResponseModel(
-            status=False,
-            timestamp=str(datetime.now(pytz.utc)),
-            data={
-                "message": str(e),
-                "code": status.HTTP_500_INTERNAL_SERVER_ERROR,
-            },
-        )
-
-    return response
-
-
-@router.put(
-    f"/{UPDATE_USER}" + "/{alarm_id}",
-    response_model=Union[GenericDataResponseModel, ErrorResponseModel],
-)
-async def update_user(
-    request: Request,
-    alarm_id: int,
-    body: UserLogin,
-    response: Response,
-    user: str = Depends(get_current_user),
-    reverse_bit_db_session: AsyncReverseBitDBSessionFactory = Depends(
-        get_reversebit_db
-    ),
-):
-
-    try:
-        print("44444", alarm_id)
-        # check user already exists
-        user_details = await User.get_specific_user(
-            db_session=reverse_bit_db_session, user_email=email
-        )
-        if not user_details:
-            raise ReverseBitException(
-                message="User doesn't exist. Please register the user.",
-                status_code=status.HTTP_404_NOT_FOUND,
-            )
-        else:
-            _ = verify_password(
-                plain_password=password,
-                hashed_password=user_details["password"],
-            )
-            token = create_access_refresh_token(email=email)
-
-        response = GenericDataResponseModel(
-            status=True,
-            data=token,
-            message=f"User logged-in successfully.",
-            code=status.HTTP_201_CREATED,
-            timestamp=str(datetime.now(pytz.utc)),
-        )
-    except ReverseBitException as e:
-        response.status_code = e.status_code
-        response = ErrorResponseModel(
-            status=False,
-            timestamp=str(datetime.now(pytz.utc)),
-            data={
-                "message": str(e.message),
-                "code": e.status_code,
-            },
-        )
-    except Exception as e:
-        response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
-        response = ErrorResponseModel(
-            status=False,
-            timestamp=str(datetime.now(pytz.utc)),
-            data={
-                "message": str(e),
-                "code": status.HTTP_500_INTERNAL_SERVER_ERROR,
-            },
-        )
-
-    return response
-
-
-@router.patch(
-    f"/{LOGIN}", response_model=Union[GenericDataResponseModel, ErrorResponseModel]
-)
-async def partially_update_user(
-    request: Request,
-    body: UserLogin,
-    response: Response,
-    reverse_bit_db_session: AsyncReverseBitDBSessionFactory = Depends(
-        get_reversebit_db
-    ),
-):
-
-    try:
-
-        # check user already exists
-        user_details = await User.get_specific_user(
-            db_session=reverse_bit_db_session, user_email=email
-        )
-        if not user_details:
-            raise ReverseBitException(
-                message="User doesn't exist. Please register the user.",
-                status_code=status.HTTP_404_NOT_FOUND,
-            )
-        else:
-            _ = verify_password(
-                plain_password=password,
-                hashed_password=user_details["password"],
+                hashed_password=user_details.password,
             )
             token = create_access_refresh_token(email=email)
 
