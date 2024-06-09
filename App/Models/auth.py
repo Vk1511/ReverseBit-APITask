@@ -1,6 +1,5 @@
-from sqlalchemy import Column, Integer, String, TIMESTAMP, Boolean, text, select
-from sqlalchemy.orm import relationship
-from fastapi.encoders import jsonable_encoder
+from sqlalchemy import Column, Integer, String, TIMESTAMP, Boolean, text, select, func
+from sqlalchemy.orm import relationship, joinedload
 from fastapi import HTTPException, status
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from .base import Base
@@ -41,7 +40,46 @@ class User(Base):
         user = result.fetchone()
         # user = result.unique().scalars().all()
         # json_compatible_permission = jsonable_encoder(user)
-        return user[0] if len(user) else False
+        return user[0] if user else False
+
+    @classmethod
+    async def get_specific_user_details_with_company_data(
+        cls,
+        db_session: AsyncReverseBitDBSessionFactory,
+        user: String,
+    ):
+        stmt = (
+            select(cls)
+            .options(joinedload(cls.user_companies).joinedload(UserCompany.company))
+            .where(cls.id == user)
+        )
+        result = await db_session.execute(stmt)
+        user = result.scalars().first()
+        return user
+
+    @classmethod
+    async def get_users_details_with_company_data(
+        cls, db_session: AsyncReverseBitDBSessionFactory, is_higher_salary: bool = False
+    ):
+        stmt = select(cls).options(
+            joinedload(cls.user_companies).joinedload(UserCompany.company)
+        )
+
+        if is_higher_salary:
+            subquery = (
+                select(
+                    UserCompany.user_id,
+                    func.max(UserCompany.salary).label("max_salary"),
+                )
+                .group_by(UserCompany.user_id)
+                .having(func.max(UserCompany.salary) > 50000)
+                .alias("subq")
+            )
+            stmt = stmt.join(subquery, User.id == subquery.c.user_id)
+
+        result = await db_session.execute(stmt)
+        users = result.unique().scalars().all()
+        return users
 
     async def save(self, db_session: AsyncReverseBitDBSessionFactory, flush=None):
         """

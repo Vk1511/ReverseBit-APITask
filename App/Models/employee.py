@@ -6,8 +6,12 @@ from sqlalchemy import (
     Float,
     text,
     ForeignKey,
+    select,
 )
 from sqlalchemy.orm import relationship
+from app.config.database import AsyncReverseBitDBSessionFactory
+from sqlalchemy.exc import SQLAlchemyError, IntegrityError
+from fastapi import HTTPException, status
 from .base import Base
 
 
@@ -23,6 +27,18 @@ class Company(Base):
 
     user_companies = relationship("UserCompany", back_populates="company")
 
+    @classmethod
+    async def get_specific_company(
+        cls,
+        db_session: AsyncReverseBitDBSessionFactory,
+        company: String,
+    ):
+        stmt = select(cls).where(cls.id == company)
+
+        result = await db_session.execute(stmt)
+        user = result.fetchone()
+        return user[0] if user else False
+
 
 class UserCompany(Base):
     __tablename__ = "user_company"
@@ -37,3 +53,29 @@ class UserCompany(Base):
     # Relationships (optional)
     user = relationship("User", back_populates="user_companies")
     company = relationship("Company", back_populates="user_companies")
+
+    async def save(self, db_session: AsyncReverseBitDBSessionFactory, flush=None):
+        """
+
+        :param db_session:
+        :return: Record ID
+        """
+        try:
+            db_session.add(self)
+            if not flush:
+                await db_session.commit()
+            else:
+                await db_session.flush()
+            return self.id
+
+        except IntegrityError as integrity_error:
+            await db_session.rollback()
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Record already exists.",
+            )
+
+        except SQLAlchemyError as sql_error:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=repr(sql_error)
+            ) from sql_error

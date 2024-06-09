@@ -8,3 +8,4 @@ REGISTER = "register"
 
 # users endpoint
 UPDATE_USER = "user"
+COMPANY = "company"
