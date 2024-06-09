@@ -4,3 +4,10 @@ SQLAlchemy
 requests
 alembic
 hypercorn
+pydantic-settings
+asyncpg
+greenlet==3.0.3
+pyjwt
+# for password hasing
+passlib[bcrypt]
+pytz

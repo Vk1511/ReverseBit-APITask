@@ -1,27 +1,27 @@
-from sqlalchemy import create_engine
-from sqlalchemy.ext.declarative import declarative_base
+from collections.abc import AsyncGenerator
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
-from .constant import (
-    DATABASE_HOST,
-    DATABASE_USER_NAME,
-    DATABASE_PASSWORD,
-    DATABASE,
-    DATABASE_PORT,
+from app.config.config import get_reverse_bit_db_settings
+
+
+"""
+ReverseBit DB connection pooling
+"""
+global_auth_settings = get_reverse_bit_db_settings()
+print(global_auth_settings)
+
+reversebit_db_engine = create_async_engine(
+    url=str(global_auth_settings.asyncpg_url),
+    future=True,
+    echo=True,
+    pool_pre_ping=True,
+)
+
+AsyncReverseBitDBSessionFactory = sessionmaker(
+    reversebit_db_engine, autoflush=False, expire_on_commit=False, class_=AsyncSession
 )
 
 
-DATABASE_URL = f"postgresql://{DATABASE_USER_NAME}:{DATABASE_PASSWORD}@{DATABASE_HOST}:{DATABASE_PORT}/{DATABASE}"
-
-engine = create_engine(DATABASE_URL)
-
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
-Base = declarative_base()
-
-
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+async def get_reversebit_db() -> AsyncGenerator:
+    async with AsyncReverseBitDBSessionFactory() as reversebit_db_session:
+        yield reversebit_db_session
