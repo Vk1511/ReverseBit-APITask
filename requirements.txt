@@ -1,13 +1,13 @@
-fastapi
-pydantic
-SQLAlchemy
-requests
-alembic
-hypercorn
-pydantic-settings
-asyncpg
+fastapi==0.111.0
+pydantic==2.7.3
+SQLAlchemy==2.0.30
+requests==2.32.3
+alembic==1.13.1
+hypercorn==0.17.3
+pydantic-settings==2.3.1
+asyncpg==0.29.0
 greenlet==3.0.3
-pyjwt
+pyjwt==2.8.0
 # for password hasing
-passlib[bcrypt]
-pytz
+passlib[bcrypt]==1.7.4
+pytz==2024.1
